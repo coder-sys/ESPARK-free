@@ -42,7 +42,7 @@ db = firebase.database()
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
-cred = credentials.Certificate("espark-a18da-firebase-adminsdk-s233j-0ad1627f54.json")
+cred = credentials.Certificate("./espark-a18da-firebase-adminsdk-s233j-0ad1627f54.json")
 firebase_admin.initialize_app(cred)
 fd = firestore.client()
 fd.collection('data').document('info').set({'data':1})
@@ -76,9 +76,9 @@ def login(first_name):
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response
     try:
-        referance = db.child(f'Users/{first_name}').get()
-        print(dict(referance.val())['password'])
-        return {"data":dict(referance.val())['password']}
+        referance = db.child('Users/'+str(first_name)).get()
+        print(referance.val())
+        return {"data":referance.val()['password']}
     except:
         return {"data":"username not found"}
 @app.route('/add_folder/<name>/<foldername>',methods=['GET'])
@@ -151,7 +151,7 @@ def add_youtube_content(name,foldername,sourcename,sourcepath):
     def add_header(response):
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response
-    fd.collection(name).document(foldername).collection("content_stored").add({'link':'https:__www.youtube.com_watch?v='+sourcepath,'name':sourcename})
+    fd.collection(name).document(foldername).collection("content_stored").add({'link':'https:``www.youtube.com`watch?v='+sourcepath,'name':sourcename})
     
     return{"status":sourcepath}
 @app.route('/get_youtube_data/<query>',methods=['GET'])
@@ -230,5 +230,58 @@ def verify_sign_in_information(name,lname):
             'info':data,
             'status':200
         }
+@app.route('/get_stored_links/<name>/<foldername>',methods=['GET'])
+def get_stored_links(name, foldername):
+    @after_this_request
+    def add_header(response):
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+    stored_data = fd.collection(name).document(foldername).collection('content_stored').get()
+    stored_data = list(stored_data)
+    array = []
+    for _ in stored_data:
+        array.append(_.to_dict())
+    name_extracted = []
+    for _ in array:
+        name_extracted.append(_['link'])
+    print(name_extracted)
+    name_extracted_1 = []
+    for _ in name_extracted:
+        if _ == '`':
+            _ = '/'
+            print(_)
+        name_extracted_1.append(_)
+    print(type(name_extracted_1))
+    return {
+        'data':name_extracted_1
+    }
+@app.route('/find_similarity_links/<arr1>/<arr2>')
+def find_similarity_links(arr1,arr2):
+    disabled = []
+    i1 = 0
+    i2 = 0
+    arr1 = list(arr1)
+    arr2 = list(arr2)
+    if(len(arr1)>len(arr2)):
+        print(list(arr1),list(arr2))
+        for i in arr1:
+            if i == ',' or i == '[' or i == ']':
+                arr1.pop(i1)
+        i1 += 1
+        for j in arr2:
+            if j == ',' or j == '[' or j == ']':
+                arr2.pop(i2)
+        i2 += 1
+
+        for i in arr1:
+            print(i)
+            if i in arr2:
+                disabled.append(True)
+            else:
+                disabled.append(False)
+        
+    return{
+        'data':disabled
+    }
 if __name__=='__main__':
     app.run(debug=True,host="localhost",port=8000)
